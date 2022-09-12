@@ -48,7 +48,7 @@ void setup() {
   delay(1000);
 
   // Initialize all the pot readings array.
-  // This array is used in getSelectedPulseMs() in order to smooth readings from the potentiometer.
+  // This array is used in getPulseMsSelectionPotValue() in order to smooth readings from the potentiometer.
   for (int thisReading = 0; thisReading < NUM_POT_READINGS; thisReading++) {
     int value = analogRead(POT_PIN);
     POT_READINGS[thisReading] = value;
@@ -76,17 +76,25 @@ void loop() {
   if (FIRE_STATE == LOW) {
     
     // Read the input value from the pulseMs selection potentiometer:
-    int pulseLengthPotValue = getSelectedPulseMs();
+    int pulseLengthPotValue = getPulseMsSelectionPotValue();
   
-    // We devide the pot input into 20 'steps'
-    int potentiometerIncrements = MAX_PULSE_MS/PULSE_INCREMENT_MS;
-    int potentiometerInput = constrain(pulseLengthPotValue / (1024/potentiometerIncrements), 1, potentiometerIncrements);
-  
-    int newPulseMs = potentiometerInput * PULSE_INCREMENT_MS;
+    // We devide the pot input into increments
+    int numberOfPotIncrements = MAX_PULSE_MS/PULSE_INCREMENT_MS;
+    int potIncrementSize = 1024/numberOfPotIncrements;
+
+    // Then we see how many times the increment will go into the value read 
+    // from the pot to get the number of increments selected
+    int noIncrements = pulseLengthPotValue/potIncrementSize;
+    int newPulseMs = noIncrements * PULSE_INCREMENT_MS;
     
-    // Debugging
-    //Serial.print("pulseLengthPotValue: ");
-    //Serial.println(pulseLengthPotValue);
+    /* Debugging
+    Serial.print("divisor: ");
+    Serial.print(1024/potentiometerIncrements);
+    Serial.print(" pulseLengthPotValue: ");
+    Serial.print(pulseLengthPotValue);
+    Serial.print(" value: ");
+    Serial.println(value);
+    */
   
     updateDisplay(newPulseMs);
   }
@@ -112,7 +120,7 @@ void loop() {
   }
 
   // If the trigger button has been pressed since last loop, then turn fire the welding head.
-  if (FIRE_BUTTON.pressed() && FIRE_STATE == LOW) {
+  if (FIRE_BUTTON.pressed() && FIRE_STATE == LOW && selectedPulseMs > 0) {
     Serial.print("Firing welding head for: ");
     Serial.print(selectedPulseMs);
     Serial.println("ms");
@@ -135,7 +143,7 @@ void updateDisplay(int _value) {
  * This function smooths values from the potentiometer by returning the average value of
  * a number of previous readings. The number of readings used is defined by NUM_POT_READINGS.
  */
-int getSelectedPulseMs() {
+int getPulseMsSelectionPotValue() {
   // subtract the oldest reading:
   POT_READINGS_TOTAL = POT_READINGS_TOTAL - POT_READINGS[POT_READ_INDEX];
   // read from the sensor and store it in the oldest array slot.
