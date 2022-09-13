@@ -16,6 +16,8 @@ Bounce2::Button FIRE_BUTTON = Bounce2::Button();
 
 const int MAX_PULSE_MS = 10000;
 const int PULSE_INCREMENT_MS = 250;
+const int FIRE_DELAY_MILLIS = 250;
+const int LOCK_OUT_MILLIS = 1000;
 
 static unsigned char FIRE_STATE = LOW;
 
@@ -119,8 +121,21 @@ void loop() {
     disp.displayInteger(selectedPulseMs);
   }
 
-  // If the trigger button has been pressed since last loop, then turn fire the welding head.
-  if (FIRE_BUTTON.pressed() && FIRE_STATE == LOW && selectedPulseMs > 0) {
+  /*
+   * If the weld head is off
+   * AND the fire button is currently held down
+   * AND the fire button was previously off for more than the LOCK_OUT_MILLIS
+   * AND the fire button has been pressed for more than FIRE_DELAY_MILLIS. This protects against accidental trigger touches.
+   * AND the fire button has been pressed for less than the selected fire time.
+   * AND the selectedPulseMS is greater than 0
+   * Then we fire the welding head.
+   */
+  if (FIRE_STATE == LOW
+      && FIRE_BUTTON.isPressed()
+      && (FIRE_BUTTON.previousDuration() > LOCK_OUT_MILLIS)
+      && (FIRE_BUTTON.currentDuration() > FIRE_DELAY_MILLIS)
+      && (FIRE_BUTTON.currentDuration() <= selectedPulseMs)
+      && selectedPulseMs > 0) {
     Serial.print("Firing welding head for: ");
     Serial.print(selectedPulseMs);
     Serial.println("ms");
